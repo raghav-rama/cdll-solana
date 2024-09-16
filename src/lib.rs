@@ -6,11 +6,11 @@ use solana_program::{
     entrypoint,
     entrypoint::ProgramResult,
     msg,
-    program::invoke_signed,
+    // program::invoke,
     program_error::ProgramError,
     pubkey::Pubkey,
-    system_instruction,
-    sysvar::{rent::Rent, Sysvar},
+    // system_instruction,
+    // sysvar::{rent::Rent, Sysvar},
 };
 use std::io::Cursor;
 
@@ -101,10 +101,12 @@ fn add_node(program_id: &Pubkey, accounts: &[AccountInfo], data: u64) -> Program
 
     let account_info_iter = &mut accounts.iter();
     msg!("1");
-    let payer_account = next_account_info(account_info_iter)?; // Account paying for the transaction
+    let _payer_account = next_account_info(account_info_iter)?; // Account paying for the transaction
     msg!("2");
     let head_account = next_account_info(account_info_iter)?; // Head node account
     msg!("3");
+    msg!("head_account_key: {:?}", head_account.key);
+    msg!("head_account: {:?}", head_account);
     let new_node_account = next_account_info(account_info_iter)?; // New node account
     msg!("4");
 
@@ -114,30 +116,29 @@ fn add_node(program_id: &Pubkey, accounts: &[AccountInfo], data: u64) -> Program
     }
 
     // Calculate the size needed for the Node struct
-    let node_size = std::mem::size_of::<Node>();
+    // let node_size = std::mem::size_of::<Node>();
 
     // Calculate the minimum lamports required for rent exemption
-    let rent = Rent::get()?;
-    let required_lamports = rent.minimum_balance(node_size);
+    // let rent = Rent::get()?;
+    // let required_lamports = rent.minimum_balance(node_size);
     msg!("5");
     let system_program = next_account_info(account_info_iter)?;
     msg!("system_program: {:?}", system_program);
     // Create the new node account
-    invoke_signed(
-        &system_instruction::create_account(
-            payer_account.key,
-            new_node_account.key,
-            required_lamports,
-            node_size as u64,
-            program_id,
-        ),
-        &[
-            payer_account.clone(),
-            new_node_account.clone(),
-            system_program.clone(),
-        ],
-        &[&[]],
-    )?;
+    // invoke(
+    //     &system_instruction::create_account(
+    //         payer_account.key,
+    //         new_node_account.key,
+    //         required_lamports,
+    //         node_size as u64,
+    //         program_id,
+    //     ),
+    //     &[
+    //         payer_account.clone(),
+    //         new_node_account.clone(),
+    //         system_program.clone(),
+    //     ],
+    // )?;
     msg!("6");
     // Deserialize the head node
     let mut head_data = head_account.data.borrow_mut();
@@ -149,7 +150,10 @@ fn add_node(program_id: &Pubkey, accounts: &[AccountInfo], data: u64) -> Program
         .iter()
         .find(|a| *a.key == tail_account_key)
         .ok_or(ProgramError::InvalidAccountData)?;
-
+    msg!("7");
+    msg!("tail_account_key: {:?}", tail_account_key);
+    msg!("tail_account: {:?}", tail_account);
+    msg!("8");
     let mut tail_data = tail_account.data.borrow_mut();
     let mut tail_node = Node::try_from_slice(&tail_data)?;
 

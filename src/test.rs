@@ -151,7 +151,7 @@ mod tests {
         let new_node_account = Keypair::new();
 
         // Fund the new node account
-        let create_new_node_account_ix = system_instruction::create_account(
+        let _create_new_node_account_ix = system_instruction::create_account(
             &payer.pubkey(),
             &new_node_account.pubkey(),
             required_lamports,
@@ -173,7 +173,7 @@ mod tests {
         };
 
         let transaction = Transaction::new_signed_with_payer(
-            &[create_new_node_account_ix, add_node_instruction],
+            &[_create_new_node_account_ix, add_node_instruction],
             Some(&payer.pubkey()),
             &[&payer, &new_node_account],
             last_blockhash,
