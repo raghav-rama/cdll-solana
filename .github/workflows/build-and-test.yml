@@ -1,0 +1,36 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain 1.79.0 -y
+      - name: Install Solana CLI
+        run: sh -c "$(curl -sSfL https://release.anza.xyz/edge/install)"
+      - name: Add Solana to PATH
+        run: echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+
+      - name: Find or Create Keypair
+        shell: bash
+        run: |
+          find ~/.config/solana/id.json || solana-keygen new -s --no-bip39-passphrase
+          echo "DEFAULT_SOLANA_PUBLIC_KEY=$(solana-keygen pubkey ~/.config/solana/id.json)" >> $GITHUB_ENV
+
+      - name: Run build
+        run: cargo-build-sbf
+      - name: Run tests
+        run: |
+          cargo-test-sbf test_initialize_list
+          cargo-test-sbf test_add_node
