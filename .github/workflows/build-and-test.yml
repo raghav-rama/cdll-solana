@@ -22,6 +22,13 @@ jobs:
       - name: Add Solana to PATH
         run: echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libudev-dev protobuf-compiler
+          rustup component add rustfmt
+          rustup component add clippy
+
       - name: Find or Create Keypair
         shell: bash
         run: |
