@@ -198,12 +198,18 @@ mod tests {
 
         let head_node = Node::try_from_slice(&head_account_data).unwrap();
         let new_node = Node::try_from_slice(&new_node_data).unwrap();
+        {
+            println!("new_node.prev: {:?}", new_node.prev);
+            println!("head_node.prev: {:?}", head_node.prev);
+            println!("new_node.next: {:?}", new_node.next);
+            println!("head_node.next: {:?}", head_node.next);
+        }
 
         assert_eq!(head_node.prev, new_node_account.pubkey());
-        assert_eq!(head_node.next, new_node.next);
         assert_eq!(new_node.next, head_account.pubkey());
-        assert_eq!(new_node.prev, head_node.prev);
         assert_eq!(new_node.data, 42);
+        assert_eq!(new_node_account.pubkey(), head_node.prev);
+        assert_eq!(head_account.pubkey(), new_node.next);
     }
 
     #[tokio::test]
@@ -280,6 +286,7 @@ mod tests {
                 AccountMeta::new(payer.pubkey(), true),
                 AccountMeta::new(head_account.pubkey(), false),
                 AccountMeta::new(node1_account.pubkey(), false),
+                AccountMeta::new(system_program::id(), false),
             ],
             data: InstructionData::AddNode { data: 100 }.try_to_vec().unwrap(),
         };

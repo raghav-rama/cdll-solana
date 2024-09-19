@@ -140,10 +140,11 @@ fn add_node(program_id: &Pubkey, accounts: &[AccountInfo], data: u64) -> Program
     //     ],
     // )?;
     msg!("6");
-    // Deserialize the head node
-    let mut head_data = head_account.data.borrow_mut();
-    let mut head_node = Node::try_from_slice(&head_data)?;
-
+    // Deserialize the head node without mutably borrowing
+    let head_node = {
+        let head_data = head_account.data.borrow();
+        Node::try_from_slice(&head_data)?
+    };
     // Get the tail node (head.prev)
     let tail_account_key = head_node.prev;
     let tail_account = accounts
@@ -151,11 +152,6 @@ fn add_node(program_id: &Pubkey, accounts: &[AccountInfo], data: u64) -> Program
         .find(|a| *a.key == tail_account_key)
         .ok_or(ProgramError::InvalidAccountData)?;
     msg!("7");
-    msg!("tail_account_key: {:?}", tail_account_key);
-    msg!("tail_account: {:?}", tail_account);
-    msg!("8");
-    let mut tail_data = tail_account.data.borrow_mut();
-    let mut tail_node = Node::try_from_slice(&tail_data)?;
 
     // Initialize the new node
     let new_node = Node {
@@ -166,14 +162,30 @@ fn add_node(program_id: &Pubkey, accounts: &[AccountInfo], data: u64) -> Program
 
     new_node.serialize(&mut &mut new_node_account.data.borrow_mut()[..])?;
 
-    // Update the tail and head nodes
-    tail_node.next = *new_node_account.key;
-    let mut tail_data_cursor = Cursor::new(&mut **tail_data);
-    tail_node.serialize(&mut tail_data_cursor)?;
+    // Update the tail node
+    {
+        msg!("8");
+        let mut tail_data = tail_account.data.borrow_mut();
+        msg!("9");
+        let mut tail_node = Node::try_from_slice(&tail_data)?;
+        msg!("10");
+        tail_node.next = *new_node_account.key;
+        msg!("11");
+        tail_node.serialize(&mut &mut tail_data[..])?;
+    } // Mutable borrow of tail_data ends here
+    msg!("12");
 
-    head_node.prev = *new_node_account.key;
-    let mut head_data_cursor = Cursor::new(&mut **head_data);
-    head_node.serialize(&mut head_data_cursor)?;
+    // Update the head node
+    {
+        let mut head_data = head_account.data.borrow_mut();
+        msg!("13");
+        let mut head_node = Node::try_from_slice(&head_data)?;
+        msg!("14");
+        head_node.prev = *new_node_account.key;
+        msg!("15");
+        head_node.serialize(&mut &mut head_data[..])?;
+        msg!("16");
+    } // Mutable borrow of head_data ends here
 
     Ok(())
 }

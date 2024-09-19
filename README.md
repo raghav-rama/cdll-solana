@@ -5,6 +5,6 @@ Circular Double Linked List on Solana
 # Tests (`cargo-test-sbf`)
 
 - ✅ Initialize
-- ❎ Add node
+- ✅ Add node
 - ❎ Remove node
 - ❎ Integration Test
