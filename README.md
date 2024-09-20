@@ -6,5 +6,5 @@ Circular Double Linked List on Solana
 
 - ✅ Initialize
 - ✅ Add node
-- ❎ Remove node
-- ❎ Integration Test
+- ✅ Remove node
+- ✅ Integration Test
