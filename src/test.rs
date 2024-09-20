@@ -25,7 +25,7 @@ mod tests {
     async fn test_initialize_list() {
         let program_id = Pubkey::new_unique();
         let mut program_test = ProgramTest::new(
-            "circular_doubly_ll_solana", // Replace with your program's name
+            "circular_doubly_ll_solana",
             program_id,
             processor!(process_instruction),
         );
@@ -55,7 +55,6 @@ mod tests {
             ..
         } = program_test.start_with_context().await;
 
-        // Create InitializeList instruction
         let instruction_data = InstructionData::InitializeList.try_to_vec().unwrap();
         let instruction = Instruction {
             program_id,
@@ -75,7 +74,6 @@ mod tests {
 
         banks_client.process_transaction(transaction).await.unwrap();
 
-        // Verify the head account data
         let head_account_data = banks_client
             .get_account(head_account.pubkey())
             .await
@@ -99,7 +97,6 @@ mod tests {
             processor!(process_instruction),
         );
 
-        // Create head account
         let head_account = Keypair::new();
         let node_size = std::mem::size_of::<Node>();
         let rent = Rent::default();
@@ -124,7 +121,6 @@ mod tests {
             ..
         } = program_test.start_with_context().await;
 
-        // Initialize the list
         let instruction_data = InstructionData::InitializeList.try_to_vec().unwrap();
         let initialize_instruction = Instruction {
             program_id,
@@ -147,10 +143,8 @@ mod tests {
             .await
             .unwrap();
 
-        // Add a new node
         let new_node_account = Keypair::new();
 
-        // Fund the new node account
         let _create_new_node_account_ix = system_instruction::create_account(
             &payer.pubkey(),
             &new_node_account.pubkey(),
@@ -158,14 +152,21 @@ mod tests {
             node_size as u64,
             &program_id,
         );
+        let head_account_data = banks_client
+            .get_account(head_account.pubkey())
+            .await
+            .unwrap()
+            .unwrap()
+            .data;
+        let head_node = Node::try_from_slice(&head_account_data).unwrap();
 
         let add_node_instruction_data = InstructionData::AddNode { data: 42 }.try_to_vec().unwrap();
         println!("add_node_instruction_data: {:?}", add_node_instruction_data);
         let add_node_instruction = Instruction {
             program_id,
             accounts: vec![
-                AccountMeta::new(payer.pubkey(), true),
                 AccountMeta::new(head_account.pubkey(), false),
+                AccountMeta::new(head_node.prev, false),
                 AccountMeta::new(new_node_account.pubkey(), false),
                 AccountMeta::new(system_program::id(), false),
             ],
@@ -181,7 +182,6 @@ mod tests {
 
         banks_client.process_transaction(transaction).await.unwrap();
 
-        // Verify the head and new node
         let head_account_data = banks_client
             .get_account(head_account.pubkey())
             .await
@@ -221,7 +221,6 @@ mod tests {
             processor!(process_instruction),
         );
 
-        // Create accounts
         let head_account = Keypair::new();
         let node1_account = Keypair::new();
         let node2_account = Keypair::new();
@@ -229,7 +228,7 @@ mod tests {
         let rent = Rent::default();
         let required_lamports = rent.minimum_balance(node_size);
 
-        // Add accounts to test environment
+        // environment setup
         let accounts = vec![
             (head_account.pubkey(), head_account.insecure_clone()),
             (node1_account.pubkey(), node1_account.insecure_clone()),
@@ -257,7 +256,6 @@ mod tests {
             ..
         } = program_test.start_with_context().await;
 
-        // Initialize the list
         let initialize_instruction = Instruction {
             program_id,
             accounts: vec![
@@ -279,12 +277,20 @@ mod tests {
             .await
             .unwrap();
 
+        let head_account_data = banks_client
+            .get_account(head_account.pubkey())
+            .await
+            .unwrap()
+            .unwrap()
+            .data;
+        let head_node = Node::try_from_slice(&head_account_data).unwrap();
+
         // Add node1
         let add_node1_instruction = Instruction {
             program_id,
             accounts: vec![
-                AccountMeta::new(payer.pubkey(), true),
                 AccountMeta::new(head_account.pubkey(), false),
+                AccountMeta::new(head_node.prev, false),
                 AccountMeta::new(node1_account.pubkey(), false),
                 AccountMeta::new(system_program::id(), false),
             ],
@@ -293,17 +299,20 @@ mod tests {
 
         let transaction1 = Transaction::new_signed_with_payer(
             &[
-                system_instruction::create_account(
-                    &payer.pubkey(),
-                    &node1_account.pubkey(),
-                    required_lamports,
-                    node_size as u64,
-                    &program_id,
-                ),
+                // system_instruction::create_account(
+                //     &payer.pubkey(),
+                //     &node1_account.pubkey(),
+                //     required_lamports,
+                //     node_size as u64,
+                //     &program_id,
+                // ),
                 add_node1_instruction,
             ],
             Some(&payer.pubkey()),
-            &[&payer, &node1_account],
+            &[
+                &payer,
+                // &node1_account
+            ],
             last_blockhash,
         );
 
@@ -312,30 +321,42 @@ mod tests {
             .await
             .unwrap();
 
+        let head_account_data = banks_client
+            .get_account(head_account.pubkey())
+            .await
+            .unwrap()
+            .unwrap()
+            .data;
+        let head_node = Node::try_from_slice(&head_account_data).unwrap();
+
         // Add node2
         let add_node2_instruction = Instruction {
             program_id,
             accounts: vec![
-                AccountMeta::new(payer.pubkey(), true),
                 AccountMeta::new(head_account.pubkey(), false),
+                AccountMeta::new(head_node.prev, false),
                 AccountMeta::new(node2_account.pubkey(), false),
+                AccountMeta::new(system_program::id(), false),
             ],
             data: InstructionData::AddNode { data: 200 }.try_to_vec().unwrap(),
         };
 
         let transaction2 = Transaction::new_signed_with_payer(
             &[
-                system_instruction::create_account(
-                    &payer.pubkey(),
-                    &node2_account.pubkey(),
-                    required_lamports,
-                    node_size as u64,
-                    &program_id,
-                ),
+                // system_instruction::create_account(
+                //     &payer.pubkey(),
+                //     &node2_account.pubkey(),
+                //     required_lamports,
+                //     node_size as u64,
+                //     &program_id,
+                // ),
                 add_node2_instruction,
             ],
             Some(&payer.pubkey()),
-            &[&payer, &node2_account],
+            &[
+                &payer,
+                // &node2_account
+            ],
             last_blockhash,
         );
 
@@ -344,6 +365,14 @@ mod tests {
             .await
             .unwrap();
 
+        let target_node_data = banks_client
+            .get_account(node1_account.pubkey())
+            .await
+            .unwrap()
+            .unwrap()
+            .data;
+        let target_node = Node::try_from_slice(&target_node_data).unwrap();
+
         // Remove node1
         let remove_node1_instruction = Instruction {
             program_id,
@@ -351,6 +380,8 @@ mod tests {
                 AccountMeta::new(payer.pubkey(), true),
                 AccountMeta::new(head_account.pubkey(), false),
                 AccountMeta::new(node1_account.pubkey(), false),
+                AccountMeta::new(target_node.prev, false),
+                AccountMeta::new(target_node.next, false),
             ],
             data: InstructionData::RemoveNode {
                 target_node: node1_account.pubkey(),
@@ -377,7 +408,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(node1_account_data.is_none()); // Account should be deallocated
+        assert!(node1_account_data.is_none()); // Account should be decommisioned
 
         // Verify head and node2 pointers
         let head_account_data = banks_client
@@ -405,7 +436,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_full_list_operations() {
-        // Test initializing, adding multiple nodes, and removing nodes in various orders
+        // Integration test
         let program_id = Pubkey::new_unique();
         let mut program_test = ProgramTest::new(
             "circular_doubly_ll_solana",
@@ -413,7 +444,6 @@ mod tests {
             processor!(process_instruction),
         );
 
-        // Create head account
         let head_account = Keypair::new();
         let node_size = std::mem::size_of::<Node>();
         let rent = Rent::default();
@@ -438,7 +468,6 @@ mod tests {
             ..
         } = program_test.start_with_context().await;
 
-        // Initialize the list
         let initialize_instruction = Instruction {
             program_id,
             accounts: vec![
@@ -460,18 +489,26 @@ mod tests {
             .await
             .unwrap();
 
-        // Add multiple nodes
         let mut node_accounts = Vec::new();
         for i in 1..=5 {
             let node_account = Keypair::new();
             node_accounts.push(node_account);
 
+            let head_account_data = banks_client
+                .get_account(head_account.pubkey())
+                .await
+                .unwrap()
+                .unwrap()
+                .data;
+            let head_node = Node::try_from_slice(&head_account_data).unwrap();
+
             let add_node_instruction = Instruction {
                 program_id,
                 accounts: vec![
-                    AccountMeta::new(payer.pubkey(), true),
                     AccountMeta::new(head_account.pubkey(), false),
+                    AccountMeta::new(head_node.prev, false),
                     AccountMeta::new(node_accounts[i - 1].pubkey(), false),
+                    AccountMeta::new(system_program::id(), false),
                 ],
                 data: InstructionData::AddNode { data: i as u64 }
                     .try_to_vec()
@@ -497,14 +534,22 @@ mod tests {
             banks_client.process_transaction(transaction).await.unwrap();
         }
 
-        // Remove nodes in reverse order
         for i in (1..=5).rev() {
+            let target_account_data = banks_client
+                .get_account(node_accounts[i - 1].pubkey())
+                .await
+                .unwrap()
+                .unwrap()
+                .data;
+            let target_node = Node::try_from_slice(&target_account_data).unwrap();
             let remove_node_instruction = Instruction {
                 program_id,
                 accounts: vec![
                     AccountMeta::new(payer.pubkey(), true),
                     AccountMeta::new(head_account.pubkey(), false),
                     AccountMeta::new(node_accounts[i - 1].pubkey(), false),
+                    AccountMeta::new(target_node.prev, false),
+                    AccountMeta::new(target_node.next, false),
                 ],
                 data: InstructionData::RemoveNode {
                     target_node: node_accounts[i - 1].pubkey(),
@@ -522,7 +567,6 @@ mod tests {
 
             banks_client.process_transaction(transaction).await.unwrap();
 
-            // Verify the node is removed
             let node_account_data = banks_client
                 .get_account(node_accounts[i - 1].pubkey())
                 .await
@@ -531,7 +575,6 @@ mod tests {
             assert!(node_account_data.is_none());
         }
 
-        // Verify that only the head node remains and points to itself
         let head_account_data = banks_client
             .get_account(head_account.pubkey())
             .await
